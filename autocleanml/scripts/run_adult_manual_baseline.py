@@ -272,7 +272,9 @@ def main() -> None:
             )
             print(f"\nManual baseline artifacts written to: {run_dir}")
     finally:
-        spark.stop()
+        import os
+        if "DATABRICKS_RUNTIME_VERSION" not in os.environ:
+            spark.stop()
 
 
 def manual_clean_adult_dataframe(

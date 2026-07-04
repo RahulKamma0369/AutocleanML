@@ -148,7 +148,9 @@ def main() -> None:
             )
             print(f"\nExperiment artifacts written to: {run_dir}")
     finally:
-        spark.stop()
+        import os
+        if "DATABRICKS_RUNTIME_VERSION" not in os.environ:
+            spark.stop()
 
 
 def load_manual_baselines(manual_baseline_dir: str | None) -> dict[str, Any]:

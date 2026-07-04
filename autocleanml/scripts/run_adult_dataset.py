@@ -212,7 +212,9 @@ def main() -> None:
             )
             print(f"\nExperiment artifacts written to: {run_dir}")
     finally:
-        spark.stop()
+        import os
+        if "DATABRICKS_RUNTIME_VERSION" not in os.environ:
+            spark.stop()
 
 
 def run_validation_only_baseline(df) -> dict:
