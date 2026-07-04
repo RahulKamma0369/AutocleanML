@@ -684,6 +684,21 @@ def print_summary(report: dict[str, Any]) -> None:
             f"auc={delta.get('auc')}"
         )
 
+    print("\n--- 3-Fold Stability (AutoCleanML) ---")
+    fs = auto_ml.get("fold_stability")
+    if fs and fs.get("summary"):
+        s = fs["summary"]
+        for metric in ["accuracy", "f1", "auc"]:
+            st = s.get(metric, {})
+            if st:
+                print(
+                    f"  {metric:<10}: mean={st['mean']:.4f}  "
+                    f"stddev={st['stddev']:.4f}  "
+                    f"min={st['min']:.4f}  max={st['max']:.4f}"
+                )
+    else:
+        print("  (fold_stability not available — run with --validation-folds >= 2)")
+
     print("\n--- Detection Accuracy ---")
     for issue, details in report["detection_accuracy"].items():
         if issue == "mean_accuracy":
