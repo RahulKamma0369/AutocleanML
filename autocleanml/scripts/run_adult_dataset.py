@@ -286,19 +286,25 @@ def build_spark(
     active = SparkSession.getActiveSession()
     if active is not None:
         return active
-    return (
+    import os
+    master = os.environ.get("SPARK_MASTER_URL", "local[*]")
+    builder = (
         SparkSession.builder
         .appName("autocleanml-adult")
-        .master("local[*]")
-        .config("spark.ui.enabled", "false")
-        .config("spark.driver.bindAddress", "127.0.0.1")
-        .config("spark.driver.host", "127.0.0.1")
-        .config("spark.driver.memory", driver_memory)
-        .config("spark.executor.memory", executor_memory)
-        .config("spark.driver.maxResultSize", "2g")
+        .master(master)
+        .config("spark.ui.enabled", "true")
         .config("spark.sql.shuffle.partitions", "8")
-        .getOrCreate()
     )
+    if master.startswith("local"):
+        builder = (
+            builder
+            .config("spark.driver.bindAddress", "127.0.0.1")
+            .config("spark.driver.host", "127.0.0.1")
+            .config("spark.driver.memory", driver_memory)
+            .config("spark.executor.memory", executor_memory)
+            .config("spark.driver.maxResultSize", "2g")
+        )
+    return builder.getOrCreate()
 
 
 def load_adult_dataframe(spark: SparkSession, paths: list[str]):

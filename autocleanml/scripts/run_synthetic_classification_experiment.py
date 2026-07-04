@@ -646,18 +646,24 @@ def build_spark() -> SparkSession:
     active = SparkSession.getActiveSession()
     if active is not None:
         return active
-    return (
+    import os
+    master = os.environ.get("SPARK_MASTER_URL", "local[*]")
+    builder = (
         SparkSession.builder
         .appName("autocleanml-synthetic-classification")
-        .master("local[*]")
-        .config("spark.ui.enabled", "false")
-        .config("spark.driver.bindAddress", "127.0.0.1")
-        .config("spark.driver.host", "127.0.0.1")
-        .config("spark.driver.memory", "4g")
-        .config("spark.executor.memory", "4g")
+        .master(master)
+        .config("spark.ui.enabled", "true")
         .config("spark.sql.shuffle.partitions", "8")
-        .getOrCreate()
     )
+    if master.startswith("local"):
+        builder = (
+            builder
+            .config("spark.driver.bindAddress", "127.0.0.1")
+            .config("spark.driver.host", "127.0.0.1")
+            .config("spark.driver.memory", "4g")
+            .config("spark.executor.memory", "4g")
+        )
+    return builder.getOrCreate()
 
 
 def log_run(output_dir: Path, run_name: str, artifacts: dict[str, Any]) -> Path:
