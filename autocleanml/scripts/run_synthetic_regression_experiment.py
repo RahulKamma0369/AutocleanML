@@ -533,6 +533,7 @@ def build_report(
                 "mae": autoclean_ml.cleaned_metrics.get("mae"),
                 "r2": autoclean_ml.cleaned_metrics.get("r2"),
                 "ml_row_count": autoclean_ml.cleaned_metrics.get("ml_row_count"),
+                "fold_stability": autoclean_ml.cleaned_metrics.get("fold_stability"),
                 "delta_vs_raw": autoclean_ml.delta,
                 "note": "Full AutoCleanML pipeline including median/mode imputation.",
             },
