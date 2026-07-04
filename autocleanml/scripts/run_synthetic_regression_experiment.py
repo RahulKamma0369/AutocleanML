@@ -78,6 +78,10 @@ def main() -> None:
             synthetic.dirty_df,
             synthetic.reference_schema,
         )
+        ground_truth_verification = verify_profiler_accuracy(
+            synthetic.dirty_df,
+            autoclean_result.raw_profile,
+        )
 
         ml_evaluator = SparkMLRegressionEvaluator(validation_folds=args.validation_folds)
         autoclean_ml = ml_evaluator.evaluate_linear_regression(
@@ -112,6 +116,11 @@ def main() -> None:
             validation_ml=validation_ml,
         )
         print_summary(report)
+        print("\n--- Ground Truth Profiler Verification ---")
+        m = ground_truth_verification["missingness"]
+        d = ground_truth_verification["duplicates"]
+        print(f"  Missingness : ground_truth={m['ground_truth_null_count']}  profiler={m['profiler_null_count']}  match={m['exact_match']}  accuracy={m['detection_accuracy_pct']}%")
+        print(f"  Duplicates  : ground_truth={d['ground_truth_duplicate_count']}  profiler={d['profiler_duplicate_count']}  match={d['exact_match']}  accuracy={d['detection_accuracy_pct']}%")
 
         if args.log_dir:
             run_dir = log_run(
@@ -135,6 +144,7 @@ def main() -> None:
                     "validation_only": validation_result,
                     "validation_only_ml": validation_ml,
                     "comparison_report": report,
+                    "ground_truth_verification": ground_truth_verification,
                 },
             )
             print(f"\nExperiment artifacts written to: {run_dir}")
@@ -142,6 +152,46 @@ def main() -> None:
         import os
         if "DATABRICKS_RUNTIME_VERSION" not in os.environ:
             spark.stop()
+
+
+def verify_profiler_accuracy(dirty_df: DataFrame, raw_profile: dict) -> dict:
+    all_cols = dirty_df.columns
+    null_row = dirty_df.select([
+        F.count(F.when(F.col(c).isNull(), c)).alias(c) for c in all_cols
+    ]).collect()[0].asDict()
+    ground_truth_nulls = sum(null_row.values())
+    ground_truth_dups = dirty_df.count() - dirty_df.dropDuplicates().count()
+
+    profiler_nulls = sum(
+        v.get("missing_count", 0)
+        for v in raw_profile.get("missingness", {}).values()
+    )
+    profiler_dups = raw_profile.get("duplicates", {}).get("duplicate_count", 0)
+
+    return {
+        "missingness": {
+            "ground_truth_null_count": ground_truth_nulls,
+            "profiler_null_count": profiler_nulls,
+            "exact_match": ground_truth_nulls == profiler_nulls,
+            "detection_accuracy_pct": 100.0 if ground_truth_nulls == profiler_nulls else round(
+                max(0, 1 - abs(profiler_nulls - ground_truth_nulls) / max(1, ground_truth_nulls)) * 100, 2
+            ),
+        },
+        "duplicates": {
+            "ground_truth_duplicate_count": ground_truth_dups,
+            "profiler_duplicate_count": profiler_dups,
+            "exact_match": ground_truth_dups == profiler_dups,
+            "detection_accuracy_pct": 100.0 if ground_truth_dups == profiler_dups else round(
+                max(0, 1 - abs(profiler_dups - ground_truth_dups) / max(1, ground_truth_dups)) * 100, 2
+            ),
+        },
+        "method": (
+            "Ground truth computed via direct Spark aggregations — "
+            "COUNT(null) per column for missingness, "
+            "count() minus dropDuplicates().count() for duplicates. "
+            "Profiler counts compared against ground truth, not against injection rate parameters."
+        ),
+    }
 
 
 def run_validation_only_baseline(
