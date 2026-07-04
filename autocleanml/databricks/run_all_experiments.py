@@ -26,8 +26,7 @@ def run(script: str, *extra_args: str) -> None:
 
 run(
     "run_synthetic_classification_experiment.py",
-    "--row-count", "50000",
-    "--ml-eval",
+    "--rows", "50000",
     "--log-dir", f"{RESULTS_DIR}/e1",
 )
 
@@ -36,8 +35,7 @@ run(
 
 run(
     "run_synthetic_regression_experiment.py",
-    "--row-count", "50000",
-    "--ml-eval",
+    "--rows", "50000",
     "--log-dir", f"{RESULTS_DIR}/e2",
 )
 
