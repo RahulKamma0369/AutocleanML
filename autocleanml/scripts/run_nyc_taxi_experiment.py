@@ -96,17 +96,22 @@ def main() -> None:
         validation_ml = None
 
         if args.ml_eval:
+            _tmp = "/opt/autocleanml/tmp/e4_ml"
+            result.cleaned_df.write.mode("overwrite").parquet(_tmp + "/cleaned")
+            cleaned_for_ml = spark.read.parquet(_tmp + "/cleaned")
+            raw_df.write.mode("overwrite").parquet(_tmp + "/raw")
+            raw_for_ml = spark.read.parquet(_tmp + "/raw")
             evaluator = SparkMLRegressionEvaluator(validation_folds=args.validation_folds)
             ml_result = evaluator.evaluate_linear_regression(
-                raw_df=raw_df,
-                cleaned_df=result.cleaned_df,
+                raw_df=raw_for_ml,
+                cleaned_df=cleaned_for_ml,
                 label_col=LABEL_COL,
                 numeric_cols=NUMERIC_FEATURES,
                 categorical_cols=CATEGORICAL_FEATURES,
             )
             validation_ml = evaluator.evaluate_linear_regression(
-                raw_df=raw_df,
-                cleaned_df=raw_df,
+                raw_df=raw_for_ml,
+                cleaned_df=raw_for_ml,
                 label_col=LABEL_COL,
                 numeric_cols=NUMERIC_FEATURES,
                 categorical_cols=CATEGORICAL_FEATURES,
