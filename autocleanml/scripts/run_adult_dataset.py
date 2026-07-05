@@ -154,19 +154,22 @@ def main() -> None:
         validation_ml = None
         if args.ml_eval:
             try:
+                spark.sparkContext.setCheckpointDir("/tmp/autocleanml_checkpoint")
+                cleaned_for_ml = result.cleaned_df.checkpoint()
+                raw_for_ml = df.checkpoint()
                 evaluator = SparkMLClassificationEvaluator(
                     validation_folds=args.validation_folds,
                 )
                 ml_result = evaluator.evaluate_logistic_regression(
-                    raw_df=df,
-                    cleaned_df=result.cleaned_df,
+                    raw_df=raw_for_ml,
+                    cleaned_df=cleaned_for_ml,
                     label_col="income",
                     numeric_cols=NUMERIC_FEATURES,
                     categorical_cols=CATEGORICAL_FEATURES,
                 )
                 validation_ml = evaluator.evaluate_logistic_regression(
-                    raw_df=df,
-                    cleaned_df=df,
+                    raw_df=raw_for_ml,
+                    cleaned_df=raw_for_ml,
                     label_col="income",
                     numeric_cols=NUMERIC_FEATURES,
                     categorical_cols=CATEGORICAL_FEATURES,
