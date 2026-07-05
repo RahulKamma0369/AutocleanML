@@ -154,9 +154,11 @@ def main() -> None:
         validation_ml = None
         if args.ml_eval:
             try:
-                spark.sparkContext.setCheckpointDir("/tmp/autocleanml_checkpoint")
-                cleaned_for_ml = result.cleaned_df.checkpoint()
-                raw_for_ml = df.checkpoint()
+                _tmp = "/opt/autocleanml/tmp/e3_ml"
+                result.cleaned_df.write.mode("overwrite").parquet(_tmp + "/cleaned")
+                cleaned_for_ml = spark.read.parquet(_tmp + "/cleaned")
+                df.write.mode("overwrite").parquet(_tmp + "/raw")
+                raw_for_ml = spark.read.parquet(_tmp + "/raw")
                 evaluator = SparkMLClassificationEvaluator(
                     validation_folds=args.validation_folds,
                 )
